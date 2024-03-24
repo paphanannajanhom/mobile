@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Project</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+<style>
+    .login-btn {
+        background-color: #FF6699;
+        /* เปลี่ยนสีพื้นหลัง */
+        color: #FFFFFF;
+        /* เปลี่ยนสีของข้อความ */
+        transition: background-color 0.3s ease;
+        /* เพิ่มเอฟเฟกต์ transition เมื่อ hover */
+    }
+
+    .logout-btn {
+        background-color: #ff66f5;
+        /* เปลี่ยนสีพื้นหลัง */
+        color: #ffffff;
+        /* เปลี่ยนสีของข้อความ */
+        transition: background-color 0.3s ease;
+        /* เพิ่มเอฟเฟกต์ transition เมื่อ hover */
+    }
+
+    .login-btn:hover {
+        background-color: #FF6699;
+        /* เปลี่ยนสีพื้นหลังเมื่อ hover */
+
+    }
+</style>
+
+
+<body>
+    <div id="app">
+        <v-app>
+            <v-container>
+                <v-card>
+                    <v-card-title class="bg-blue-grey" style="text-align: center;">{{ title }}</v-card-title>
+                    <v-card-text class="pa-6">
+                        <v-card-actions>
+
+                            <v-btn @click="addteacher()" v-if="!user" class="mx-auto login-btn">Teacher</v-btn>
+                            <v-btn @click="addstudent()" v-if="!user" class="mx-auto login-btn">Student</v-btn>
+                        </v-card-actions>
+                    </v-card-text>
+
+                </v-card>
+
+
+
+            </v-container>
+        </v-app>
+    </div>
+
+    <script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBCWCTW5rtOH8rH1AOg30Q6xMmC6W-hR7o",
+  authDomain: "project-mobile-e57ae.firebaseapp.com",
+  projectId: "project-mobile-e57ae",
+  storageBucket: "project-mobile-e57ae.appspot.com",
+  messagingSenderId: "786173651432",
+  appId: "1:786173651432:web:598ae74fdd002541555c5d",
+  measurementId: "G-VPZTL4B24Z"
+};
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const vuetify = Vuetify.createVuetify();
+        const app = Vue.createApp({
+            data() {
+                return {
+                    title: "ระบบเช็คชื่อ",
+
+                };
+            },
+            methods: {
+                addteacher() {
+                    const res = db.collection("teacher").add({
+                        email: newuser
+                    }).then(() => {
+                        window.location.href = 'teacher.html'
+                    }
+                    )
+                },
+                addstudent() {
+                    const res = db.collection("student").add({
+                        email: newuser
+                    }).then(() => {
+                        window.location.href = 'student.html'
+                    }
+                    )
+                }
+            },
+            mounted() {
+                newuser = sessionStorage.getItem("newuser").toString();
+                console.log(newuser)
+            }
+        });
+
+        app.use(vuetify).mount("#app");
+
+    </script>
+</body>
+
+</html>

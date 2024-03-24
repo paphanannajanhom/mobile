@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Teacher</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/vuetify@3.4.10/dist/vuetify.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+</head>
+
+<body>
+    <div id="app">
+        <v-app>
+            <v-container>
+                <v-card>
+                    <v-card-title class="bg-grey text-center">{{ title }}</v-card-title>
+                    <v-card-text class="pa-6">
+                        <template v-if="user">
+                            <div class="pa-2">
+                                <v-avatar><img :src="user.photoURL" /></v-avatar>
+                            </div>
+                            <div class="pa-2">
+                                {{ user.displayName }}<br />
+                                {{ user.email }}
+                                <v-btn @click="google_logout()">Logout</v-btn>
+                            </div>
+
+                            <v-row>
+
+                                <v-col cols="6">
+                                    <v-card-title>สร้างรหัสเช็คชื่อห้องเรียน</v-card-title>
+                                    <v-card-text>
+                                        <v-form @submit.prevent="createAttendanceCode">
+                                            <v-text-field v-model="subject" label="กรอกชื่อวิชา"></v-text-field>
+                                            <!-- <v-text-field v-model="classDate" label="กรอกวันที่" type="date"></v-text-field> -->
+                                            <v-text-field v-model="classDateTime" label="กรอกวันที่และเวลา"
+                                                type="datetime-local"></v-text-field>
+
+                                            <v-text-field v-model="room" label="กรอกห้องเรียน"></v-text-field>
+                                            <p v-if="attendanceCode"
+                                                style="font-size: 1.5em; font-weight: bold; display: inline-block; margin-left: 10px;">
+                                                รหัส : {{attendanceCode}}</p>
+
+                                            <v-card-title>คำถาม</v-card-title>
+                                            <v-card-text>
+                                                <v-text-field v-model="question" label="ตั้งคำถาม"></v-text-field>
+                                            </v-card-text>
+                                            <v-btn v-if="question && subject && classDateTime && room " type="submit"
+                                                color="#FF6699" class="mb-5">สร้างการเช็คชื่อ</v-btn>
+                                    </v-card-text>
+
+
+                                    </v-form>
+                                </v-col>
+                                <br>
+
+                                <br>
+
+                            </v-row>
+                            <!-- <v-row v-if="checklist">
+                                <v-col cols="12">
+                                    <v-card>
+                                        <v-card-title>รายละเอียดรหัสเช็คชื่อห้องเรียน</v-card-title>
+                                        <v-card-text>
+                                            <v-text-field v-model="selectedCheckId" label="กรุณากรอก ID"></v-text-field>
+                                            <v-btn @click="showCheckDetail(selectedCheckId)" class="mx-auto"
+                                                color="#FF6699">แสดงข้อมูล</v-btn>
+
+                                        </v-card-text>
+                                    </v-card>
+                                </v-col>
+                            </v-row> -->
+                        </template>
+                    </v-card-text>
+                </v-card>
+
+                <v-card>
+                    <!-- Input Checklist Code -->
+                    <v-row>
+                        <v-col cols="6">
+                            <v-card>
+                                <v-card-title>รายชื่อ</v-card-title>
+                                <v-card-text>
+                                    <v-text-field v-model="checklistId" label="รหัสเช็คชื่อ" outlined></v-text-field>
+                                    <v-btn @click="fetchChecklist" class="mx-auto" color="#FF6699">แสดงข้อมูล</v-btn>
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                        <v-col cols="6" v-if="subjectData">
+                            <v-card>
+                                <v-card-title>รายละเอียด</v-card-title>
+                                <v-card-text>
+                                    รหัส: {{ subjectData.id }}<br>
+                                    คำถาม: {{ subjectData.question }}<br>
+                                    วิชา: {{ subjectData.subject }}<br>
+                                    ห้อง: {{ subjectData.room }}<br>
+
+
+
+
+                                </v-card-text>
+
+                            </v-card>
+                        </v-col>
+
+                    </v-row>
+
+
+                    <!-- Show Checklist -->
+                    <v-row v-if="checklist">
+
+                        <v-col v-for="item in checklist" :key="item.id" cols="12">
+                            <v-card>
+                                <v-card-text>
+                                    รหัสนักศึกษา {{item.stdCode}}<br>
+                                    ชื่อ: {{ item.stdname }}<br>
+                                    อีเมล: {{ item.stdemail }}<br>
+                                    ห้อง: {{ item.room }}<br>
+                                    สถานะ: {{ item.status }}<br>
+                                    คำตอบ: {{item.answer}}
+
+                                </v-card-text>
+                            </v-card>
+                        </v-col>
+                    </v-row>
+                </v-card>
+                <div class="pa-6 text-center">{{ footer }}</div>
+            </v-container>
+        </v-app>
+    </div>
+
+    <script>
+                        const firebaseConfig = {
+  apiKey: "AIzaSyBCWCTW5rtOH8rH1AOg30Q6xMmC6W-hR7o",
+  authDomain: "project-mobile-e57ae.firebaseapp.com",
+  projectId: "project-mobile-e57ae",
+  storageBucket: "project-mobile-e57ae.appspot.com",
+  messagingSenderId: "786173651432",
+  appId: "1:786173651432:web:598ae74fdd002541555c5d",
+  measurementId: "G-VPZTL4B24Z"
+};
+        firebase.initializeApp(firebaseConfig);
+
+        const db = firebase.firestore();
+
+        const vuetify = Vuetify.createVuetify();
+        const app = Vue.createApp({
+            data() {
+                return {
+                    title: "Teacher",
+                    user: null,
+                    attendanceCode: null,
+                    subject: "",
+                    classDateTime: "",
+                    room: "",
+                    checklistId: "",
+                    question: "",
+                    checklist: [],
+                    subjectData: null
+                };
+            },
+
+            methods: {
+                google_logout() {
+                    if (confirm("คุณแน่ใจหรือไม่?")) {
+                        firebase.auth().signOut().then(() => {
+                            window.location.href = 'index.html';
+                        }).catch((error) => {
+                            console.log("เกิดข้อผิดพลาดในการออกจากระบบ:", error);
+                        });
+                    }
+                },
+                createAttendanceCode() {
+                    const attendanceId = Math.random().toString(36).substring(2, 8);
+                    const attendanceData = {
+                        id: attendanceId,
+                        subject: this.subject,
+                        class_date: this.classDateTime,
+                        room: this.room,
+                        question: this.question
+                    };
+
+                    db.collection("checkin").doc(attendanceId).set(attendanceData)
+                        .then(() => {
+                            this.attendanceCode = attendanceId;
+                            this.question = "";
+                        })
+                        .catch((error) => {
+                            console.error("Error creating attendance code:", error);
+                        });
+                },
+                fetchChecklist() {
+                    db.collection("checkin").doc(this.checklistId).get()
+                        .then((doc) => {
+                            if (doc.exists) {
+                                const checkItem = doc.data();
+                                this.subjectData = checkItem
+                            } else {
+
+                                console.error("Checklist item not found:", checkId);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error("Error getting checklist item:", error);
+                        });
+                    if (this.checklistId) {
+                        this.checklist = [];
+                        db.collection("stdcheckin").where("id", "==", this.checklistId).onSnapshot((querySnapshot) => {
+                            querySnapshot.forEach((doc) => {
+                                const data = doc.data();
+
+                                this.checklist.push({
+                                    id: doc.id,
+                                    stdname: data.stdname,
+                                    stdemail: data.stdemail,
+                                    subject: data.subject,
+                                    room: data.room,
+                                    status: data.status,
+                                    stdCode: data.stdCode,
+                                    answer: data.answer
+
+                                });
+                            });
+                        });
+
+                    } else {
+                        console.log("Please enter checklist ID.");
+                    }
+                },
+
+                fetchAnswer() {
+                    if (this.checklistId) {
+                        this.answerlist = [];
+
+
+                        db.collection("answer").where("checkinCode", "==", this.checklistId).get()
+                            .then((querySnapshot) => {
+                                querySnapshot.forEach((doc) => {
+                                    const data = doc.data();
+
+                                    this.answerlist.push({
+                                        stdname: data.stdname,
+                                        stdemail: data.stdemail,
+                                        answer: data.answer
+                                    });
+                                });
+                            })
+                            .catch((error) => {
+                                console.error("Error fetching answers:", error);
+                            });
+                    } else {
+                        console.log("Please enter checklist ID.");
+                    }
+                }
+
+
+            },
+
+            mounted() {
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        this.user = user.toJSON();
+                    } else {
+                        this.user = null;
+                    }
+                });
+            },
+
+
+        });
+
+        app.use(vuetify).mount("#app");
+    </script>
+</body>
+
+</html>
